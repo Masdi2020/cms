@@ -131,7 +131,7 @@ class _EventPageState extends State<EventPage> {
   }
 
   Future<void> delete(String table, DbRow row, String name) async {
-    if (!await confirmDelete(context, name)) return;
+    if (!await confirmDelete(context, name, action: table == 'members' ? 'Keluarkan' : 'Hapus')) return;
     try {
       await repo.remove(table, row['id']);
       reload();
@@ -201,30 +201,23 @@ class _EventPageState extends State<EventPage> {
           : <DbRow>[];
       return Scaffold(
         appBar: AppBar(
-          title: Text(widget.event['title']),
+          title: Text(widget.event['title'], maxLines: 1, overflow: TextOverflow.ellipsis),
           actions: [
-            IconButton(
-              tooltip: 'Muat ulang',
-              onPressed: reload,
-              icon: const Icon(Icons.refresh),
-            ),
-            if (manager)
-              IconButton(
-                tooltip: 'Edit event',
-                onPressed: editEvent,
-                icon: const Icon(Icons.edit_outlined),
-              ),
-            if (admin)
-              IconButton(
-                tooltip: widget.event['ketua_panitia_id'] == null
-                    ? 'Tetapkan ketua panitia'
-                    : 'Ubah ketua panitia',
-                onPressed: editChair,
-                icon: const Icon(Icons.person_add_alt_1_outlined),
-              ),
-            if (admin)
+            if (manager || admin)
               PopupMenuButton<String>(
                 onSelected: (v) async {
+                  if (v == 'edit') {
+                    await editEvent();
+                    return;
+                  }
+                  if (v == 'chair') {
+                    await editChair();
+                    return;
+                  }
+                  if (v == 'refresh') {
+                    reload();
+                    return;
+                  }
                   if (v == 'delete') {
                     if (!await confirmDelete(context, widget.event['title'])) {
                       return;
@@ -238,10 +231,10 @@ class _EventPageState extends State<EventPage> {
                   }
                 },
                 itemBuilder: (_) => [
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Hapus event'),
-                  ),
+                  if (manager) const PopupMenuItem(value: 'edit', child: Text('Edit event')),
+                  if (admin) PopupMenuItem(value: 'chair', child: Text(widget.event['ketua_panitia_id'] == null ? 'Tetapkan ketua panitia' : 'Ubah ketua panitia')),
+                  const PopupMenuItem(value: 'refresh', child: Text('Muat ulang')),
+                  if (admin) const PopupMenuItem(value: 'delete', child: Text('Hapus event')),
                 ],
               ),
           ],
@@ -283,9 +276,9 @@ class _EventPageState extends State<EventPage> {
                   reload();
                   await future;
                 },
-                child: ListView(
+                child: ResponsiveContent(child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 112),
                   children: [
                     if (tab == 0) ...[
                       Card(
@@ -348,8 +341,7 @@ class _EventPageState extends State<EventPage> {
                                 .length,
                           }.entries)
                             SizedBox(
-                              width:
-                                  (MediaQuery.sizeOf(context).width - 56) / 2,
+                              width: (MediaQuery.sizeOf(context).width.clamp(320, 900) - 56) / 2,
                               child: _MetricCard(
                                 label: item.key,
                                 value: item.value,
@@ -475,23 +467,21 @@ class _EventPageState extends State<EventPage> {
                                   'Pengguna',
                             ),
                             subtitle: Text(
-                              '${divisions.where((d) => d['id'] == m['division_id']).map((d) => d['name']).firstOrNull ?? '-'} • ${widget.users.where((u) => u['id'] == m['user_id']).map((u) => u['email']).firstOrNull ?? ''}',
+                              '${divisions.where((d) => d['id'] == m['division_id']).map((d) => d['name']).firstOrNull ?? '-'}\n${widget.users.where((u) => u['id'] == m['user_id']).map((u) => u['email']).firstOrNull ?? ''}',
+                              maxLines: 2, overflow: TextOverflow.ellipsis,
                             ),
                             trailing: manager
-                                ? IconButton(
-                                    tooltip: 'Hapus anggota',
-                                    icon: const Icon(
-                                      Icons.remove_circle_outline,
-                                    ),
-                                    onPressed: () =>
-                                        delete('members', m, 'anggota'),
+                                ? PopupMenuButton<String>(
+                                    tooltip: 'Tindakan anggota',
+                                    onSelected: (_) => delete('members', m, 'anggota'),
+                                    itemBuilder: (_) => const [PopupMenuItem(value: 'remove', child: Text('Keluarkan anggota'))],
                                   )
                                 : null,
                           ),
                         ),
                     ],
                   ],
-                ),
+                )),
               ),
       );
     },

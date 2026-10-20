@@ -132,11 +132,6 @@ class _HomePageState extends State<HomePage> {
           title: const Text('Rukun'),
           actions: [
             IconButton(
-              tooltip: 'Muat ulang',
-              onPressed: reload,
-              icon: const Icon(Icons.refresh),
-            ),
-            IconButton(
               tooltip: 'Keluar',
               onPressed: () async {
                 try {
@@ -176,14 +171,14 @@ class _HomePageState extends State<HomePage> {
                 label: Text(tab == 0 ? 'Buat event' : 'Pengguna'),
               )
             : null,
-        body: RefreshIndicator(
+        body: ResponsiveContent(child: RefreshIndicator(
           onRefresh: () async {
             reload();
             await future;
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 112),
             children: [
               if (tab == 0) ...[
                 Card(
@@ -299,9 +294,11 @@ class _HomePageState extends State<HomePage> {
                                         .titleMedium
                                         ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: 5),
                                   Text(
                                     '${event['location'] ?? 'Lokasi belum ditentukan'} • ${dateLabel(event['start_date'])} – ${dateLabel(event['end_date'])}',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: Theme.of(
@@ -484,16 +481,23 @@ class _HomePageState extends State<HomePage> {
                         user['name'],
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      subtitle: Text(
-                        '@${user['username'] ?? '-'} • ${user['email']}\n${user['role'] == 'admin' ? 'Administrator' : 'Pengguna'}',
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('@${user['username'] ?? '-'}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text(user['email'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 5),
+                          _RoleBadge(label: user['role'] == 'admin' ? 'Administrator' : 'Pengguna'),
+                        ],
                       ),
+                      isThreeLine: true,
                       onTap: () => userEditor(user),
                       trailing: user['id'] == repo.uid
                           ? null
-                          : IconButton(
-                              tooltip: 'Hapus pengguna',
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () async {
+                          : PopupMenuButton<String>(
+                              tooltip: 'Tindakan pengguna',
+                              onSelected: (action) async {
+                                if (action != 'delete') return;
                                 if (!await confirmDelete(
                                   context,
                                   user['name'],
@@ -517,15 +521,34 @@ class _HomePageState extends State<HomePage> {
                                   if (context.mounted) notifyError(context, e);
                                 }
                               },
+                              itemBuilder: (_) => const [PopupMenuItem(value: 'delete', child: Text('Hapus pengguna'))],
                             ),
                     ),
                   ),
               ],
             ],
           ),
-        ),
+        )),
       );
     },
+  );
+}
+
+class _RoleBadge extends StatelessWidget {
+  const _RoleBadge({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: Theme.of(context).colorScheme.onSecondaryContainer,
+      fontWeight: FontWeight.w600,
+    )),
   );
 }
 

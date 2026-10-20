@@ -41,8 +41,21 @@ class MyApp extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF087F8C)),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF087F8C),
+        primary: const Color(0xFF087F8C),
+        secondary: const Color(0xFF46BFC2),
+        surface: Colors.white,
+      ),
       scaffoldBackgroundColor: const Color(0xFFF6F8FA),
+      textTheme: const TextTheme(
+        headlineSmall: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
+        titleLarge: TextStyle(fontSize: 21, fontWeight: FontWeight.w700),
+        titleMedium: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        bodyLarge: TextStyle(fontSize: 16),
+        bodyMedium: TextStyle(fontSize: 14),
+        bodySmall: TextStyle(fontSize: 13),
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFFF6F8FA),
         surfaceTintColor: Colors.transparent,
@@ -72,7 +85,7 @@ class MyApp extends StatelessWidget {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(48, 52),
+        minimumSize: const Size(48, 50),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -86,9 +99,20 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        extendedPadding: const EdgeInsets.symmetric(horizontal: 18),
+        extendedTextStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 2,
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         indicatorColor: const Color(0xFFD8F1F0),
+        height: 68,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(size: states.contains(WidgetState.selected) ? 22 : 21),
+        ),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             fontWeight: states.contains(WidgetState.selected)

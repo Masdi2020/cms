@@ -42,14 +42,14 @@ class _LoginPageState extends State<LoginPage> {
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
             child: AutofillGroup(
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.only(bottom: 18),
                     child: Column(
                       children: [
                         ClipRRect(
@@ -84,7 +84,7 @@ class _LoginPageState extends State<LoginPage> {
                   Card(
                     margin: EdgeInsets.zero,
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 360 ? 18 : 22),
                       child: Form(
                         key: _form,
                         child: Column(
@@ -105,7 +105,7 @@ class _LoginPageState extends State<LoginPage> {
                                     ).colorScheme.onSurfaceVariant,
                                   ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 20),
                             TextFormField(
                               controller: _identity,
                               enabled: !_busy,
@@ -185,18 +185,34 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ],
                             const SizedBox(height: 24),
-                            FilledButton(
-                              onPressed: _busy ? null : _login,
-                              child: _busy
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text('Masuk'),
-                            ),
+                            // Align(
+                            //   alignment: Alignment.centerRight,
+                              // child: FilledButton(
+                              FilledButton(
+                                style: ButtonStyle(
+                                  backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+                                    (states) {
+                                      if (states.contains(WidgetState.disabled)) return null;
+                                      if (states.contains(WidgetState.hovered)) {
+                                        return Colors.blue[900];
+                                      }
+                                      return Colors.blue;
+                                    }
+                                  ),
+                                  foregroundColor: const WidgetStatePropertyAll(Colors.black),
+                                ),
+                                onPressed: _busy ? null : _login,
+                                child: _busy
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text('Masuk'),
+                              ),
+                            // ),
                             const SizedBox(height: 20),
                             Text(
                               'Belum memiliki akun atau lupa kata sandi?',

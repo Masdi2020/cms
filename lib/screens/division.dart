@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data.dart';
 import 'shared.dart';
@@ -26,15 +27,40 @@ class DivisionDetailPage extends StatefulWidget {
 
 class _DivisionDetailPageState extends State<DivisionDetailPage> {
   late Future<List<dynamic>> future;
+  RealtimeChannel? taskChannel;
   CmsRepository get repo => widget.repo;
   bool get manager =>
       widget.profile['role'] == 'admin' ||
       widget.event['ketua_panitia_id'] == repo.uid;
+  bool get coordinator => widget.division['coordinator_id'] == repo.uid;
+  bool get canEditDivision => manager || coordinator;
 
   @override
   void initState() {
     super.initState();
     future = _load();
+    taskChannel = repo.client
+        .channel('division-tasks-${widget.division['id']}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'tasks',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'division_id',
+            value: widget.division['id'],
+          ),
+          callback: (_) {
+            if (mounted) reload();
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    if (taskChannel != null) repo.client.removeChannel(taskChannel!);
+    super.dispose();
   }
 
   Future<List<dynamic>> _load() => Future.wait([
@@ -53,7 +79,18 @@ class _DivisionDetailPageState extends State<DivisionDetailPage> {
       context,
       title: 'Edit divisi',
       initial: widget.division,
-      fields: const [Field('name', 'Nama divisi')],
+      fields: [
+        const Field('name', 'Nama divisi'),
+        if (manager)
+          Field(
+            'coordinator_id',
+            'Koordinator divisi',
+            required: false,
+            options: {
+              for (final user in widget.users) user['id']: user['name'],
+            },
+          ),
+      ],
       save: (values) async {
         await repo.save('divisions', values, widget.division['id']);
         widget.division.addAll(values);
@@ -124,24 +161,19 @@ class _DivisionDetailPageState extends State<DivisionDetailPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(widget.division['name']),
+      title: Text(widget.division['name'], maxLines: 1, overflow: TextOverflow.ellipsis),
       actions: [
-        if (manager)
-          IconButton(
-            tooltip: 'Edit divisi',
-            onPressed: editDivision,
-            icon: const Icon(Icons.edit_outlined),
-          ),
-        if (manager)
-          IconButton(
-            tooltip: 'Hapus divisi',
-            onPressed: deleteDivision,
-            icon: const Icon(Icons.delete_outline),
-          ),
-        IconButton(
-          tooltip: 'Muat ulang',
-          onPressed: reload,
-          icon: const Icon(Icons.refresh),
+        PopupMenuButton<String>(
+          onSelected: (action) {
+            if (action == 'edit') editDivision();
+            if (action == 'delete') deleteDivision();
+            if (action == 'refresh') reload();
+          },
+          itemBuilder: (_) => [
+            if (canEditDivision) const PopupMenuItem(value: 'edit', child: Text('Edit divisi')),
+            if (manager) const PopupMenuItem(value: 'delete', child: Text('Hapus divisi')),
+            const PopupMenuItem(value: 'refresh', child: Text('Muat ulang')),
+          ],
         ),
       ],
     ),
@@ -171,9 +203,9 @@ class _DivisionDetailPageState extends State<DivisionDetailPage> {
             reload();
             await future;
           },
-          child: ListView(
+          child: ResponsiveContent(child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 112),
             children: [
               Text(
                 widget.event['title'],
@@ -228,7 +260,7 @@ class _DivisionDetailPageState extends State<DivisionDetailPage> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                    title: Text(task['title']),
+                            title: Text(task['title'], maxLines: 2, overflow: TextOverflow.ellipsis),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
@@ -251,19 +283,14 @@ class _DivisionDetailPageState extends State<DivisionDetailPage> {
                       if (mounted) reload();
                     },
                     trailing: manager
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                tooltip: 'Edit tugas',
-                                onPressed: () => editTask(members, task),
-                                icon: const Icon(Icons.edit_outlined),
-                              ),
-                              IconButton(
-                                tooltip: 'Hapus tugas',
-                                onPressed: () => deleteTask(task),
-                                icon: const Icon(Icons.delete_outline),
-                              ),
+                        ? PopupMenuButton<String>(
+                            onSelected: (action) {
+                              if (action == 'edit') editTask(members, task);
+                              if (action == 'delete') deleteTask(task);
+                            },
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(value: 'edit', child: Text('Edit tugas')),
+                              PopupMenuItem(value: 'delete', child: Text('Hapus tugas')),
                             ],
                           )
                         : const Icon(Icons.chevron_right),
@@ -303,11 +330,13 @@ class _DivisionDetailPageState extends State<DivisionDetailPage> {
                               .map((user) => user['email'] as String)
                               .firstOrNull ??
                           '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
             ],
-          ),
+          )),
         );
       },
     ),

@@ -2,6 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../data.dart';
 
+class ResponsiveContent extends StatelessWidget {
+  const ResponsiveContent({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 1080),
+      child: child,
+    ),
+  );
+}
+
 class Field {
   const Field(
     this.key,
@@ -303,7 +316,7 @@ class _EditorState extends State<_Editor> {
   );
 }
 
-Future<bool> confirmDelete(BuildContext context, String name) async =>
+Future<bool> confirmDelete(BuildContext context, String name, {String action = 'Hapus'}) async =>
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -313,7 +326,7 @@ Future<bool> confirmDelete(BuildContext context, String name) async =>
           color: Theme.of(context).colorScheme.error,
           size: 32,
         ),
-        title: const Text('Hapus data?'),
+        title: Text('$action data?'),
         content: Text(
           'Hapus "$name" beserta data terkait? Tindakan ini tidak dapat dibatalkan.',
         ),
@@ -324,7 +337,8 @@ Future<bool> confirmDelete(BuildContext context, String name) async =>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus'),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            child: Text(action),
           ),
         ],
       ),
@@ -335,22 +349,38 @@ void notifyError(BuildContext context, Object e) =>
         .showSnackBar(SnackBar(content: Text(errorMessage(e))));
 
 class EmptyState extends StatelessWidget {
-  const EmptyState(this.message, {super.key, this.icon = Icons.inbox_outlined});
+  const EmptyState(this.message, {super.key, this.icon = Icons.inbox_outlined, this.title});
   final String message;
   final IconData icon;
+  final String? title;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
     child: Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 12),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
+            ),
+          ),
+          if (title != null) ...[
+            const SizedBox(height: 12),
+            Text(title!, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+          ],
+          const SizedBox(height: 8),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

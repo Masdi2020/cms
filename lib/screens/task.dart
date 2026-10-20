@@ -185,11 +185,59 @@ class _TaskPageState extends State<TaskPage> {
     if (result == true) reload();
   }
 
+  Future<void> editTask() async {
+    try {
+      final members = await repo.rows(
+        'members',
+        column: 'division_id',
+        value: widget.task['division_id'],
+      );
+      final memberIds = members.map((member) => member['user_id']).toSet();
+      if (!mounted) return;
+      final result = await editRecord(
+        context,
+        title: 'Edit tugas',
+        initial: widget.task,
+        fields: [
+          const Field('title', 'Judul tugas'),
+          const Field('description', 'Deskripsi', required: false, lines: 3),
+          Field(
+            'assigned_to',
+            'PIC',
+            required: false,
+            options: {
+              for (final user in widget.users.where(
+                (user) => memberIds.contains(user['id']),
+              ))
+                user['id']: user['name'],
+            },
+          ),
+          const Field('deadline', 'Deadline', kind: 'datetime', required: false),
+          const Field('priority', 'Prioritas', options: priorityLabels),
+          const Field('status', 'Status', options: statusLabels),
+        ],
+        save: (values) async {
+          await repo.save('tasks', values, widget.task['id']);
+          widget.task.addAll(values);
+        },
+      );
+      if (result == true && mounted) setState(() {});
+    } catch (e) {
+      if (mounted) notifyError(context, e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: const Text('Detail tugas'),
       actions: [
+        if (widget.manager)
+          IconButton(
+            tooltip: 'Edit tugas',
+            onPressed: editTask,
+            icon: const Icon(Icons.edit_outlined),
+          ),
         IconButton(
           tooltip: 'Muat ulang',
           onPressed: reload,
@@ -212,7 +260,7 @@ class _TaskPageState extends State<TaskPage> {
             reload();
             await future;
           },
-          child: ListView(
+          child: ResponsiveContent(child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20),
             children: [
@@ -462,7 +510,7 @@ class _TaskPageState extends State<TaskPage> {
                   ),
                 ),
             ],
-          ),
+          )),
         );
       },
     ),
